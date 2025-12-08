@@ -186,11 +186,14 @@ export default {
       });
     } catch (error) {
       console.log("Error in disconnectDevice:", error);
-      return res.status(error.status || 500).json({
+      return res.status(error?.response?.status || error.status || 500).json({
         status: "error",
-        message: error.message || "Internal Server Error",
-        code: error.code || error.name || "SERVER_ERROR",
-        details: error.details || error,
+        message:
+          error?.response?.data?.message ||
+          error?.message ||
+          "Something went wrong",
+        code: error?.code || error?.name || "SERVER_ERROR",
+        details: error?.response?.data || null,
       });
     }
   },
