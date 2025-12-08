@@ -105,7 +105,7 @@ export default {
             device_name: match.deviceName,
             device_image: match.imageUrl,
             device_description: match.description,
-            disconnect_api: `http://localhost:5000/api/devices/disconnect?user_id=${id}&device_name=${match.deviceName}`,
+            disconnect_api: `https://api-rook.vercel.app/api/devices/disconnect?user_id=${id}&device_name=${match.deviceName}`,
           };
         })
         .filter(Boolean);
