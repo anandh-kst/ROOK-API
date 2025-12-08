@@ -11,14 +11,23 @@ export default {
       const redirect_url = req.query.redirect_url || "https://kstinfotech.com";
       const token = req.headers.authorization?.split(" ")[1];
       if (req.headers.authorization?.split(" ")[0] !== "Bearer" || !token)
-        return res
-          .status(401)
-          .json({ status: "error", message: "token is required" });
+        return res.status(401).json({
+          status: "error",
+          message: "token is required",
+          code: "FIELD_REQUIRED",
+          details: {
+            Authorization: "Bearer <token>",
+          },
+        });
       const { id } = jwt.verify(token, process.env.JWT_SECRET);
       if (!id) {
         return res.status(401).json({
           status: "error",
           message: "Unauthorized",
+          code: "UNAUTHORIZED",
+          details: {
+            Authorization: "Bearer <token>",
+          },
         });
       }
       const promises = devicesData.map(async (device) => {
@@ -42,26 +51,33 @@ export default {
         return null;
       });
       const results = (await Promise.all(promises)).filter(Boolean);
-      return res.status(200).json({ status: "success", data: results });
+      return res.status(200).json({
+        status: "success",
+        message: "Devices fetched successfully",
+        data: results,
+      });
     } catch (error) {
-      console.log("Error:", error?.response?.data || error);
-      if (error?.name === "JsonWebTokenError") {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
-      }
-      return res
-        .status(500)
-        .json({ status: "error", message: "Internal Server Error" });
+      console.log("Error in getDevices:", error?.response?.data || error);
+      return res.status(error.status || 500).json({
+        status: "error",
+        message: error.message || "Something went wrong",
+        code: error.code || error.name || "SERVER_ERROR",
+        details: error.details || error,
+      });
     }
   },
   getConnectedDevices: async (req, res) => {
     try {
       const token = req.headers.authorization?.split(" ")[1];
       if (req.headers.authorization?.split(" ")[0] !== "Bearer" || !token)
-        return res
-          .status(401)
-          .json({ status: "error", message: "token is required" });
+        return res.status(401).json({
+          status: "error",
+          message: "token is required",
+          code: "FIELD_REQUIRED",
+          details: {
+            Authorization: "Bearer <token>",
+          },
+        });
       console.log(token);
       const { id } = jwt.verify(token, process.env.JWT_SECRET);
       console.log(id);
@@ -69,6 +85,10 @@ export default {
         return res.status(401).json({
           status: "error",
           message: "Unauthorized",
+          code: "UNAUTHORIZED",
+          details: {
+            Authorization: "Bearer <token>",
+          },
         });
       }
       const url = `https://api.rook-connect.review/api/v2/user_id/${id}/data_sources/authorized`;
@@ -90,17 +110,21 @@ export default {
         })
         .filter(Boolean);
 
-      return res.status(200).json({ status: "success", data: finalResult });
+      return res.status(200).json({
+        status: "success",
+        message: "Devices fetched successfully",
+        data: finalResult,
+      });
     } catch (error) {
-      console.log("Error:", error?.response?.data || error);
-      if (error?.name === "JsonWebTokenError") {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
-      }
-      return res.status(500).json({
+      console.log(
+        "Error in getConnectedDevices:",
+        error?.response?.data || error
+      );
+      return res.status(error.status || 500).json({
         status: "error",
-        message: error?.response?.data?.message || "Internal Server Error",
+        message: error.message || "Internal Server Error",
+        code: error.code || error.name || "SERVER_ERROR",
+        details: error.details || error,
       });
     }
   },
@@ -109,13 +133,24 @@ export default {
       const { device_name } = req.query;
       const token = req.headers.authorization?.split(" ")[1];
       if (!device_name)
-        return res
-          .status(400)
-          .json({ message: "user_id and device_name are required" });
+        return res.status(400).json({
+          status: "error",
+          message: "user_id and device_name are required",
+          code: "FIELD_REQUIRED",
+          details: {
+            user_id: "<user_id>",
+            device_name: "<device_name>",
+          },
+        });
       if (req.headers.authorization?.split(" ")[0] !== "Bearer" || !token)
-        return res
-          .status(401)
-          .json({ status: "error", message: "token is required" });
+        return res.status(401).json({
+          status: "error",
+          message: "token is required",
+          code: "FIELD_REQUIRED",
+          details: {
+            Authorization: "Bearer <token>",
+          },
+        });
       console.log(token);
       const { id } = jwt.verify(token, process.env.JWT_SECRET);
       console.log(id);
@@ -124,6 +159,10 @@ export default {
         return res.status(401).json({
           status: "error",
           message: "Unauthorized",
+          code: "UNAUTHORIZED",
+          details: {
+            Authorization: "Bearer <token>",
+          },
         });
       }
       const url = `https://api.rook-connect.review/api/v1/user_id/${id}/data_sources/revoke_auth`;
@@ -134,24 +173,24 @@ export default {
       );
 
       if (response.status === 204)
-        return res
-          .status(200)
-          .json({ status: "error", message: "No such device connected" });
+        return res.status(200).json({
+          status: "error",
+          message: "No such device connected",
+          code: "NO_CONTENT",
+          details: null,
+        });
 
       return res.status(200).json({
         status: "success",
         message: "Device disconnected successfully",
       });
     } catch (error) {
-      console.log("Error:", error?.response?.data || error);
-      if (error?.name === "JsonWebTokenError") {
-        return res
-          .status(401)
-          .json({ status: "error", message: "Unauthorized" });
-      }
-      return res.status(500).json({
+      console.log("Error in disconnectDevice:", error);
+      return res.status(error.status || 500).json({
         status: "error",
-        message: error?.response?.data?.message || "Internal Server Error",
+        message: error.message || "Internal Server Error",
+        code: error.code || error.name || "SERVER_ERROR",
+        details: error.details || error,
       });
     }
   },
