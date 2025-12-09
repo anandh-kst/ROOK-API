@@ -34,8 +34,8 @@ export default {
       const latestMetrics = await webhookDB
         .collection("observations")
         .aggregate([
-          { $match: { user_id: "692d4ae8f6a15ddb999f67dd" } },
-          // { $match: { user_id: userId } },
+          // { $match: { user_id: "692d4ae8f6a15ddb999f67dd" } },
+          { $match: { user_id: userId } },
           { $sort: { createdAt: -1 } },
           {
             $group: {
@@ -49,10 +49,22 @@ export default {
         ])
         .toArray();
 
+       const formatedOutput = latestMetrics.map((metric) => {
+          return {
+            metricType: metric.metric_type,
+            metricValue: metric.metric_value,
+            metricUnit: metric.metric_unit,
+            metricSource: metric.metric_source,
+            metricSorceType: metric.source_type,
+            metricTime : formatSync(metric.date),
+            createdAt: formatSync(metric.createdAt),
+          }
+        });
+
       return res.status(200).json({
         status: "success",
         message: "Latest metrics fetched successfully",
-        data: latestMetrics,
+        data: formatedOutput,
       });
     } catch (error) {
       console.error("Error fetching latest metrics:", error);
@@ -95,8 +107,8 @@ export default {
         .aggregate([
           {
             $match: {
-              user_id: "6932dbc153d838896d987f44",
-              // user_id: userId,
+              // user_id: "6932dbc153d838896d987f44",
+              user_id: userId,
               metric_type: Number(metricType),
             },
           },
