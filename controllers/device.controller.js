@@ -110,7 +110,7 @@ export default {
               device_image: match.imageUrl,
               device_description: match.description,
               lastSync: lastSync,
-              disconnect_api: `https://api-rook.vercel.app/api/devices/disconnect?user_id=${id}&device_name=${match.deviceName}`,
+              disconnect_api: `https://api-rook.vercel.app/api/devices/disconnect?device_name=${match.deviceName}`,
             };
           })
       );

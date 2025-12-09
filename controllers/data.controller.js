@@ -1,6 +1,6 @@
 import { webhookDB } from "../config/db.config.js";
 import jwt from "jsonwebtoken";
-import { formatSyncTime } from "../utils/device-helper.js";
+import { formatSync } from "../utils/device-helper.js";
 
 export default {
   getLatestMetricsByUser: async (req, res) => {
@@ -66,38 +66,89 @@ export default {
 
   getFormattedMetricHistory: async (req, res) => {
     try {
-      const { userId, metricType } = req.params;
-      if(!req.headers.authorization?.split(" ")[0] === "Bearer" || !req.headers.authorization?.split(" ")[1]){
-        
+      const { metricType } = req.params;
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res.status(401).json({
+          status: "error",
+          message: "Token is required",
+          code: "FIELD_REQUIRED",
+        });
       }
+
+      const token = authHeader.split(" ")[1];
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      if (!decoded?.id) {
+        return res.status(401).json({
+          status: "error",
+          message: "Unauthorized",
+          code: "UNAUTHORIZED",
+        });
+      }
+
+      const userId = decoded.id;
+
       const records = await webhookDB
         .collection("observations")
-        .find({
-          user_id: userId,
-          metric_type: Number(metricType),
-        })
-        .sort({ createdAt: -1 })
+        .aggregate([
+          {
+            $match: {
+              user_id: userId,
+              metric_type: Number(metricType),
+            },
+          },
+          {
+            $addFields: {
+              dayKey: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createdAt",
+                },
+              },
+            },
+          },
+          { $sort: { createdAt: -1 } },
+          {
+            $group: {
+              _id: {
+                dayKey: "$dayKey",
+                device: "$metric_source",
+              },
+              latestRecord: { $first: "$$ROOT" },
+            },
+          },
+          {
+            $replaceRoot: {
+              newRoot: "$latestRecord",
+            },
+          },
+          { $sort: { createdAt: -1 } },
+        ])
         .toArray();
 
       const formatted = records.map((item) => {
+        const { day, lastSync } = formatSync(item.createdAt);
         return {
           metric_type: item.metric_type,
           metric_value: item.metric_value,
           metric_unit: item.metric_unit,
-          data_source: `Synced from ${item.metric_source}`,
-          sync_time: formatSyncTime(item.createdAt),
+          syncFrom: item.metric_source,
+          day: day,
+          lastSync: lastSync,
         };
       });
 
       return res.status(200).json({
-        success: true,
+        status: "success",
+        message: "Data fetched successfully",
         count: formatted.length,
         data: formatted,
       });
     } catch (error) {
       console.error("Error:", error);
       return res.status(500).json({
-        success: false,
+        status: "error",
         message: "Internal server error",
       });
     }

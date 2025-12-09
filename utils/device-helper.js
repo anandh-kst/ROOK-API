@@ -39,18 +39,23 @@ export const getDeviceLastSyncTime = async (userId, deviceName) => {
   }
 };
 
-export const formatSyncTime = (date) => {
+export const formatSync = (date) => {
   const now = moment();
-  const input = moment(date);
+  const t = moment(date);
 
-  const diffHours = now.diff(input, "hours");
-  const diffDays = now.diff(input, "days");
+  const isToday = t.isSame(now, "day");
+  const isYesterday = t.isSame(now.clone().subtract(1, "day"), "day");
 
-  if (diffHours < 24) {
-    return input.fromNow(); //  "2 minutes ago"
-  } else if (diffDays === 1) {
-    return "Yesterday"; // "Yesterday"
-  } else {
-    return input.format("MMM DD, YYYY"); // "Dec 02, 2025"
-  }
+  let day;
+  if (isToday) day = "today";
+  else if (isYesterday) day = "yesterday";
+  else if (now.diff(t, "days") < 7) day = t.format("ddd");  // Mon, Tue...
+  else day = t.format("DD MMM YYYY");
+
+  return {
+    day,                     // today / yesterday / Mon / 08 Dec 2025
+    lastSync: t.fromNow(),   // ALWAYS relative time
+  };
 };
+
+
