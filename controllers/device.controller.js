@@ -3,8 +3,8 @@ import { devicesData } from "../constants/devicesData.js";
 import { rookAuthHeader } from "../utils/auth-helper.js";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
+import { getDeviceLastSyncTime } from "../utils/device-helper.js";
 dotenv.config();
-
 export default {
   getDevices: async (req, res) => {
     try {
@@ -94,26 +94,33 @@ export default {
       const url = `https://api.rook-connect.review/api/v2/user_id/${id}/data_sources/authorized`;
       const response = await axios.get(url, { headers: rookAuthHeader() });
       const rookDevices = response?.data?.data_sources || [];
-      const finalResult = rookDevices
-        .filter((d) => d.authorized)
-        .map((d) => {
-          const match = devicesData.find(
-            (x) => x.deviceName.toLowerCase() === d.data_source.toLowerCase()
-          );
-          if (!match) return null;
-          return {
-            device_name: match.deviceName,
-            device_image: match.imageUrl,
-            device_description: match.description,
-            disconnect_api: `https://api-rook.vercel.app/api/devices/disconnect?user_id=${id}&device_name=${match.deviceName}`,
-          };
-        })
-        .filter(Boolean);
+      const finalResult = await Promise.all(
+        rookDevices
+          .filter((d) => d.authorized)
+          .map(async (d) => {
+            const match = devicesData.find(
+              (x) => x.deviceName.toLowerCase() === d.data_source.toLowerCase()
+            );
+            if (!match) return null;
+
+            const lastSync = await getDeviceLastSyncTime(id, match.deviceName);
+
+            return {
+              device_name: match.deviceName,
+              device_image: match.imageUrl,
+              device_description: match.description,
+              lastSync: lastSync,
+              disconnect_api: `https://api-rook.vercel.app/api/devices/disconnect?user_id=${id}&device_name=${match.deviceName}`,
+            };
+          })
+      );
+
+      const filteredResult = finalResult.filter(Boolean);
 
       return res.status(200).json({
         status: "success",
         message: "Devices fetched successfully",
-        data: finalResult,
+        data: filteredResult,
       });
     } catch (error) {
       console.log(

@@ -21,3 +21,4 @@ export const connectDB = async () => {
 
 export const mainDB = mongoose.connection;
 export const authDB = mainDB.useDb("AUTH", { useCache: true });
+export const webhookDB = mainDB.useDb("newDevelopment", { useCache: true });

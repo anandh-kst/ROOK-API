@@ -5,6 +5,8 @@ import cors from "cors";
 import path from "path";
 import deviceRouter from "./routes/device.route.js";
 import { connectDB } from "./config/db.config.js";
+import dataController from "./controllers/data.controller.js";
+import dataRouter from "./routes/data.route.js";
 dotenv.config();
 
 const app = express();
@@ -15,6 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(process.cwd(), "public")));
 
 app.use("/api/devices", deviceRouter);
+app.use("/api/data",dataRouter );
 
 const PORT = process.env.PORT || 5000;
 
