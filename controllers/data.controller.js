@@ -34,7 +34,8 @@ export default {
       const latestMetrics = await webhookDB
         .collection("observations")
         .aggregate([
-          { $match: { user_id: userId } },
+          { $match: { user_id: "692d4ae8f6a15ddb999f67dd" } },
+          // { $match: { user_id: userId } },
           { $sort: { createdAt: -1 } },
           {
             $group: {
@@ -64,7 +65,7 @@ export default {
     }
   },
 
-  getFormattedMetricHistory: async (req, res) => {
+  getMetricHistory: async (req, res) => {
     try {
       const { metricType } = req.params;
       const authHeader = req.headers.authorization;
@@ -94,7 +95,8 @@ export default {
         .aggregate([
           {
             $match: {
-              user_id: userId,
+              user_id: "6932dbc153d838896d987f44",
+              // user_id: userId,
               metric_type: Number(metricType),
             },
           },

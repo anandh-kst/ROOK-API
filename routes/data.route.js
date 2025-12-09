@@ -10,7 +10,7 @@ dataRouter.get(
 
 dataRouter.get(
   "/getFormattedMetricHistory/:metricType",
-  dataController.getFormattedMetricHistory
+  dataController.getMetricHistory
 );
 
 export default dataRouter;
