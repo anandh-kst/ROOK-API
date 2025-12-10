@@ -8,7 +8,8 @@ dotenv.config();
 export default {
   getDevices: async (req, res) => {
     try {
-      const redirect_url = req.query.redirect_url || "https://kstinfotech.com";
+      const redirect_url =
+        req.query.redirect_url || process.env.DEFAULT_REDIRECT_URL;
       const token = req.headers.authorization?.split(" ")[1];
       if (req.headers.authorization?.split(" ")[0] !== "Bearer" || !token)
         return res.status(401).json({
@@ -31,7 +32,7 @@ export default {
         });
       }
       const promises = devicesData.map(async (device) => {
-        const url = `https://api.rook-connect.review/api/v1/user_id/${id}/data_source/${device.deviceName}/authorizer?redirect_url=${redirect_url}`;
+        const url = `${process.env.ROOK_CONNECT_BASE_URL}/api/v1/user_id/${id}/data_source/${device.deviceName}/authorizer?redirect_url=${redirect_url}`;
         try {
           const response = await axios.get(url, { headers: rookAuthHeader() });
           if (!response.data.authorized) {
@@ -91,7 +92,7 @@ export default {
           },
         });
       }
-      const url = `https://api.rook-connect.review/api/v2/user_id/${id}/data_sources/authorized`;
+      const url = `${process.env.ROOK_CONNECT_BASE_URL}/api/v2/user_id/${id}/data_sources/authorized`;
       const response = await axios.get(url, { headers: rookAuthHeader() });
       const rookDevices = response?.data?.data_sources || [];
       const finalResult = await Promise.all(
@@ -110,7 +111,7 @@ export default {
               device_image: match.imageUrl,
               device_description: match.description,
               lastSync: lastSync,
-              disconnect_api: `https://api-rook.vercel.app/api/devices/disconnect?device_name=${match.deviceName}`,
+              disconnect_api: `${process.env.BASE_URL}/api/devices/disconnect?device_name=${match.deviceName}`,
             };
           })
       );
@@ -172,7 +173,7 @@ export default {
           },
         });
       }
-      const url = `https://api.rook-connect.review/api/v1/user_id/${id}/data_sources/revoke_auth`;
+      const url = `${process.env.ROOK_CONNECT_BASE_URL}/api/v1/user_id/${id}/data_sources/revoke_auth`;
       const response = await axios.post(
         url,
         { data_source: device_name },

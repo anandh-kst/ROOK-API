@@ -1,6 +1,7 @@
 import { webhookDB } from "../config/db.config.js";
 import jwt from "jsonwebtoken";
 import { formatSync } from "../utils/device-helper.js";
+import { getImageUrl } from "../utils/data-helper.js";
 
 export default {
   getLatestMetricsByUser: async (req, res) => {
@@ -52,28 +53,33 @@ export default {
         .collection("metricTypes")
         .find({})
         .toArray();
-      const formatedOutput = latestMetrics.map((metric) => {
-        return {
-          metricType: metric.metric_type,
-          metricCode:
-            MetricsData.find((item) => item.metricType === metric.metric_type)
-              ?.metricCode || "",
-          metricName:
-            MetricsData.find((item) => item.metricType === metric.metric_type)
-              ?.metricName || "",
-          metricValue: metric.metric_value,
-          metricUnit: metric.metric_unit,
-          metricSource: metric.metric_source,
-          metricSorceType: metric.source_type,
-          metricTime: formatSync(metric.date),
-          createdAt: formatSync(metric.createdAt),
-        };
-      });
+      const formattedOutput = await Promise.all(
+        latestMetrics.map(async (metric) => {
+          const metricInfo = MetricsData.find(
+            (item) => item.metricType === metric.metric_type
+          );
+          const metricIcon = await getImageUrl(
+            metricInfo?.metricCode || "defalut"
+          );
+          return {
+            metricIcon: `${process.env.BASE_URL}/images/data/${metricIcon}`,
+            metricType: metric.metric_type,
+            metricCode: metricInfo?.metricCode || "",
+            metricName: metricInfo?.metricName || "",
+            metricValue: metric.metric_value,
+            metricUnit: metric.metric_unit,
+            metricSource: metric.metric_source,
+            metricSorceType: metric.source_type,
+            metricTime: formatSync(metric.date),
+            createdAt: formatSync(metric.createdAt),
+          };
+        })
+      );
 
       return res.status(200).json({
         status: "success",
         message: "Latest metrics fetched successfully",
-        data: formatedOutput,
+        data: formattedOutput,
       });
     } catch (error) {
       console.error("Error fetching latest metrics:", error);
@@ -155,24 +161,31 @@ export default {
         .find({})
         .toArray();
 
-      const formatted = records.map((item) => {
-        const { day, lastSync } = formatSync(item.createdAt);
-        return {
-          metricType: item.metric_type,
-          metricCode:
+      const formatted = await Promise.all(
+        records.map(async (item) => {
+          const { day, lastSync } = formatSync(item.createdAt);
+          const metricCode =
             metricData.find((i) => i.metricType === item.metric_type)
-              ?.metricCode || "",
-          metricName:
-            metricData.find((i) => i.metricType === item.metric_type)
-              ?.metricName || "",
-          metricValue: item.metric_value,
-          metricUnit: item.metric_unit,
-          metricSource: item.metric_source,
-          metricSorceType: item.source_type,
-          day: day,
-          lastSync: lastSync,
-        };
-      });
+              ?.metricCode || "defalut";
+          const metricIcon = await getImageUrl(metricCode);
+          return {
+            metricIcon: `${process.env.BASE_URL}/images/data/${metricIcon}`,
+            metricType: item.metric_type,
+            metricCode:
+              metricData.find((i) => i.metricType === item.metric_type)
+                ?.metricCode || "",
+            metricName:
+              metricData.find((i) => i.metricType === item.metric_type)
+                ?.metricName || "",
+            metricValue: item.metric_value,
+            metricUnit: item.metric_unit,
+            metricSource: item.metric_source,
+            metricSorceType: item.source_type,
+            day: day,
+            lastSync: lastSync,
+          };
+        })
+      );
 
       return res.status(200).json({
         status: "success",
@@ -182,9 +195,11 @@ export default {
       });
     } catch (error) {
       console.error("Error:", error);
-      return res.status(500).json({
+      return res.status(error.status || 500).json({
         status: "error",
-        message: "Internal server error",
+        message: error.message || "Internal Server Error",
+        code: error.code || error.name || "INTERNAL_SERVER_ERROR",
+        details: error.details || error,
       });
     }
   },
