@@ -48,18 +48,27 @@ export default {
           },
         ])
         .toArray();
-
-       const formatedOutput = latestMetrics.map((metric) => {
-          return {
-            metricType: metric.metric_type,
-            metricValue: metric.metric_value,
-            metricUnit: metric.metric_unit,
-            metricSource: metric.metric_source,
-            metricSorceType: metric.source_type,
-            metricTime : formatSync(metric.date),
-            createdAt: formatSync(metric.createdAt),
-          }
-        });
+      const MetricsData = await webhookDB
+        .collection("metricTypes")
+        .find({})
+        .toArray();
+      const formatedOutput = latestMetrics.map((metric) => {
+        return {
+          metricType: metric.metric_type,
+          metricCode:
+            MetricsData.find((item) => item.metricType === metric.metric_type)
+              ?.metricCode || "",
+          metricName:
+            MetricsData.find((item) => item.metricType === metric.metric_type)
+              ?.metricName || "",
+          metricValue: metric.metric_value,
+          metricUnit: metric.metric_unit,
+          metricSource: metric.metric_source,
+          metricSorceType: metric.source_type,
+          metricTime: formatSync(metric.date),
+          createdAt: formatSync(metric.createdAt),
+        };
+      });
 
       return res.status(200).json({
         status: "success",
@@ -141,13 +150,25 @@ export default {
         ])
         .toArray();
 
+      const metricData = await webhookDB
+        .collection("metricTypes")
+        .find({})
+        .toArray();
+
       const formatted = records.map((item) => {
         const { day, lastSync } = formatSync(item.createdAt);
         return {
-          metric_type: item.metric_type,
-          metric_value: item.metric_value,
-          metric_unit: item.metric_unit,
-          syncFrom: item.metric_source,
+          metricType: item.metric_type,
+          metricCode:
+            metricData.find((i) => i.metricType === item.metric_type)
+              ?.metricCode || "",
+          metricName:
+            metricData.find((i) => i.metricType === item.metric_type)
+              ?.metricName || "",
+          metricValue: item.metric_value,
+          metricUnit: item.metric_unit,
+          metricSource: item.metric_source,
+          metricSorceType: item.source_type,
           day: day,
           lastSync: lastSync,
         };
