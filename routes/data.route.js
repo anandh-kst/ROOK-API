@@ -13,4 +13,9 @@ dataRouter.get(
   dataController.getMetricHistory
 );
 
+dataRouter.get(
+  "/getAllMetricsByUser",
+  dataController.getAllMetricsByUser
+);
+
 export default dataRouter;
